@@ -13,4 +13,4 @@ operacion(multiplicacion, A, B, R) :- R is A * B.
 % se evita la division por cero
 operacion(division, A, B, R) :-
     B =\= 0,
-    R is A / B.
+    R is A * 1.0 / B.
