@@ -7,10 +7,10 @@ calculadora(Op, A, B, R) :-
     numero(B),
     operacion(Op, A, B, R).
 
-operacion(suma, A, B, R)           :- R is A + B.
-operacion(resta, A, B, R)          :- R is A - B.
+operacion(suma, A, B, R) :- R is A + B.
+operacion(resta, A, B, R) :- R is A - B.
 operacion(multiplicacion, A, B, R) :- R is A * B.
 % se evita la division por cero
-operacion(division, A, B, R)       :-
+operacion(division, A, B, R) :-
     B =\= 0,
     R is A / B.

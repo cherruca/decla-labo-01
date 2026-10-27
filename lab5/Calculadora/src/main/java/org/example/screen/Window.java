@@ -13,26 +13,27 @@ import java.awt.datatransfer.StringSelection;
 /** Ventana principal: arma los componentes y conecta la interfaz con el motor Prolog. */
 public class Window extends JFrame {
 
-    private static final String[] EJEMPLOS = {
-            "x", "log(x)", "3*x^2", "2^x"
-    };
+    private static final String NUMERO = "-?\\d+(\\.\\d+)?";
 
-    private final TextField txtEntrada = new TextField("Ej: 5*x^2");
+    private final TextField txtA = new TextField("primer operando");
+    private final TextField txtB = new TextField("segundo operando");
     private final PanelResult panelResultado = new PanelResult();
     private final JLabel lblEstado = new JLabel(" ");
 
     public Window(Connection motor) {
-        super("Cálculo simbólico en Prolog");
+        super("Cálculadora en Prolog");
 
         // Enter en el campo = derivar
-        txtEntrada.addActionListener(e -> ejecutar(motor, "d"));
+//        txtEntrada.addActionListener(e -> ejecutar(motor, "d"));
 
         JPanel contenido = new JPanel();
         contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
         contenido.setOpaque(false);
-        agregar(contenido, etiqueta("Función f(x)"), 6);
-        agregar(contenido, txtEntrada, 8);
-        agregar(contenido, crearEjemplos(), 18);
+        agregar(contenido, etiqueta(""), 6);
+        agregar(contenido, txtA, 8);
+        agregar(contenido, etiqueta(""), 6);
+        agregar(contenido, txtB, 8);
+//        agregar(contenido, crearEjemplos(), 18);
         agregar(contenido, crearBotones(motor), 22);
         agregar(contenido, panelResultado, 10);
         agregar(contenido, crearPie(), 0);
@@ -55,11 +56,11 @@ public class Window extends JFrame {
     // ------------------------------------------------------------------
 
     private JPanel crearEncabezado() {
-        JLabel titulo = new JLabel("Cálculo simbólico");
+        JLabel titulo = new JLabel("Cálculadora");
         titulo.setFont(Theme.sans(Font.BOLD, 24));
         titulo.setForeground(Theme.TEXT);
 
-        JLabel subtitulo = new JLabel("Derivadas e integrales resueltas con reglas en Prolog");
+        JLabel subtitulo = new JLabel("operaciones aritmeticas basicas resueltas con reglas en Prolog");
         subtitulo.setFont(Theme.sans(Font.PLAIN, 13));
         subtitulo.setForeground(Theme.MUTED);
 
@@ -72,36 +73,22 @@ public class Window extends JFrame {
         return p;
     }
 
-    private JPanel crearEjemplos() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        p.setOpaque(false);
-
-        JLabel lbl = new JLabel("Ejemplos:");
-        lbl.setForeground(Theme.MUTED);
-        lbl.setFont(Theme.sans(Font.PLAIN, 12));
-        p.add(lbl);
-
-        for (String ej : EJEMPLOS) {
-            Buttons chip = new Buttons(ej, Theme.CARD, Theme.TEXT, 12, 6, 11);
-            chip.addActionListener(e -> {
-                txtEntrada.setText(ej);
-                txtEntrada.requestFocusInWindow();
-            });
-            p.add(chip);
-        }
-        return p;
-    }
-
     private JPanel crearBotones(Connection motor) {
-        Buttons btnDerivar = new Buttons("Derivar", Theme.BLUE, Theme.BG, 26, 11, 14);
-        Buttons btnIntegrar = new Buttons("Integrar", Theme.GREEN, Theme.BG, 26, 11, 14);
-        btnDerivar.addActionListener(e -> ejecutar(motor, "d"));
-        btnIntegrar.addActionListener(e -> ejecutar(motor, "s"));
+        Buttons btnSumar = new Buttons("+", Theme.BLUE, Theme.BG, 26, 11, 16);
+        Buttons btnRestar = new Buttons("−", Theme.BLUE, Theme.BG, 26, 11, 16);
+        Buttons btnMultiplicar = new Buttons("×", Theme.BLUE, Theme.BG, 26, 11, 16);
+        Buttons btnDividir = new Buttons("/", Theme.BLUE, Theme.BG, 26, 11, 16);
+        btnSumar.addActionListener(e -> ejecutar(motor, "suma", "Suma"));
+        btnRestar.addActionListener(e -> ejecutar(motor, "resta", "Resta"));
+        btnMultiplicar.addActionListener(e -> ejecutar(motor, "multiplicacion", "Multiplicación"));
+        btnDividir.addActionListener(e -> ejecutar(motor, "division", "División"));
 
         JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         p.setOpaque(false);
-        p.add(btnDerivar);
-        p.add(btnIntegrar);
+        p.add(btnSumar);
+        p.add(btnRestar);
+        p.add(btnMultiplicar);
+        p.add(btnDividir);
         return p;
     }
 
@@ -123,24 +110,30 @@ public class Window extends JFrame {
     //  Lógica
     // ------------------------------------------------------------------
 
-    private void ejecutar(Connection motor, String pred) {
-        String entrada = txtEntrada.getText().trim();
-        String nombre = pred.equals("d") ? "Derivada" : "Integral";
-        panelResultado.setTitulo(nombre + " de f(x)");
+    private void ejecutar(Connection motor, String pred, String nombre) {
+        String a = txtA.getText().trim();
+        String b = txtB.getText().trim();
+        panelResultado.setTitulo(nombre + " de A y B");
 
-        if (entrada.isEmpty()) {
-            mostrar("", "Escribí una función primero.", Theme.AMBER);
+        if (a.isEmpty() || b.isEmpty()) {
+            mostrar("", "Escribí los dos números.", Theme.AMBER);
+            return;
+        }
+        // Solo se mandan números a Prolog, nunca texto libre
+        if (!a.matches(NUMERO) || !b.matches(NUMERO)) {
+            mostrar("", "Solo se aceptan números .", Theme.RED);
             return;
         }
         try {
-            String resultado = motor.consultar(pred, entrada);
+            String resultado = motor.consultar(pred, a, b);
             if (resultado.startsWith("Sin solución")) {
-                mostrar("", resultado, Theme.AMBER);
+                String motivo = pred.equals("division") ? "No se puede dividir entre cero." : resultado;
+                mostrar("", motivo, Theme.AMBER);
             } else {
                 mostrar(resultado, "Listo", Theme.GREEN);
             }
         } catch (Exception ex) {
-            mostrar("", "Expresión inválida: " + ex.getMessage(), Theme.RED);
+            mostrar("", "Operación inválida: " + ex.getMessage(), Theme.RED);
         }
     }
 

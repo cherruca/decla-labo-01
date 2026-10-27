@@ -16,8 +16,8 @@ public class Connection {
         }
     }
 
-    public String consultar(String predicado, String expresion) throws Exception {
-        SolveInfo info = engine.solve(predicado + "(x, " + expresion + ", R).");
+    public String consultar(String predicado, String a, String b) throws Exception {
+        SolveInfo info = engine.solve("calculadora(" + predicado + ", " + a + "," + b +", R).");
         return info.isSuccess() ? info.getTerm("R").toString()
                 : "Sin solución para esa expresión";
     }
